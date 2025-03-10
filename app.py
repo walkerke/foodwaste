@@ -54,7 +54,7 @@ def filter_flows(category, flows):
 # Create the Sankey diagram  
 def create_sankey(flows, subset):  
    if subset == "Most Recent Data":  
-      labels = ["Retail", "restaurants+hotels", "Residential", "Landfill", "Combustion", "Compost"]  
+      labels = ["Retail", "Restaurants & Hotels", "Residential", "Landfill", "Combustion", "Compost"]  
       sources = [0, 1, 2, 0, 1, 2, 0, 1, 2]  
       targets = [3, 3, 3, 4, 4, 4, 5, 5, 5]  
       values = [  
@@ -64,7 +64,8 @@ def create_sankey(flows, subset):
       ]  
       node_colors = [colors['node']] * 6  
    else:  
-      labels = [subset.capitalize(), "Landfill", "Combustion", "Compost"]  
+      labels = ["Restaurants & Hotels" if subset == "restaurants+hotels" else subset.capitalize(), 
+                "Landfill", "Combustion", "Compost"]  
       sources = [0, 0, 0]  
       targets = [1, 2, 3]  
       values = [  
@@ -92,7 +93,9 @@ def create_sankey(flows, subset):
       )  
    ))  
    fig.update_layout(  
-      title_text=f"{subset.capitalize()} Waste Flow Diagram" if subset != "Most Recent Data" else "Most Recent Data Combined Waste Flow Diagram",  
+      title_text=(f"Restaurants & Hotels Waste Flow Diagram" if subset == "restaurants+hotels"
+                  else f"{subset.capitalize()} Waste Flow Diagram" if subset != "Most Recent Data"
+                  else "Most Recent Data Combined Waste Flow Diagram"),
       font_size=12,  
       height=600,  
       plot_bgcolor=colors['background']  
@@ -101,13 +104,15 @@ def create_sankey(flows, subset):
    return fig  
  # Create the impact metrics graph   
 from plotly.subplots import make_subplots   
+
 def create_impact_graph(ghg, cost, subset, adjusted_ghg, adjusted_cost):  
    if subset == "Most Recent Data":  
-      categories = ["Retail", "restaurants+hotels", "Residential", "Most Recent Data (Baseline)"]  
+      categories = ["Retail", "Restaurants & Hotels", "Residential", "Most Recent Data (Baseline)"]  
       ghg_values = [ghg[cat] / 1e6 for cat in ['retail', 'restaurants+hotels', 'residential']] + [sum(ghg.values()) / 1e6]  
       cost_values = [cost[cat] / 1e6 for cat in ['retail', 'restaurants+hotels', 'residential']] + [sum(cost.values()) / 1e6]  
    else:  
-      categories = [f"{subset.capitalize()} (per ton - Adjusted)", f"{subset.capitalize()} (per ton - Most Recent Data)"]  
+      subset_display = "Restaurants & Hotels" if subset == "restaurants+hotels" else subset.capitalize()
+      categories = [f"{subset_display} (per ton - Adjusted)", f"{subset_display} (per ton - Most Recent Data)"] 
       ghg_values = [adjusted_ghg[subset] / 1e6, sum(base_flows[f"{subset}_to_{dest}"] * ghg_factors[dest.split('_')[-1]] for dest in ['landfill', 'combustion', 'compost']) / 1e6]  
       cost_values = [adjusted_cost[subset] / 1e6, sum(base_flows[f"{subset}_to_{dest}"] * cost_factors[dest.split('_')[-1]] for dest in ['landfill', 'combustion', 'compost']) / 1e6]  
   
@@ -115,7 +120,7 @@ def create_impact_graph(ghg, cost, subset, adjusted_ghg, adjusted_cost):
    fig.add_trace(go.Bar(  
       x=categories,  
       y=ghg_values,  
-      name='GHG emmission (M kg CO₂e)',  
+      name='GHG emission (M kg CO₂e)',  
       marker_color=colors['landfill'],  
       offsetgroup=0  
    ), secondary_y=False)  
@@ -128,8 +133,10 @@ def create_impact_graph(ghg, cost, subset, adjusted_ghg, adjusted_cost):
    ), secondary_y=True)  
   
    fig.update_layout(  
-      title_text=f"Impact Metrics: {subset.capitalize()}" if subset != "Most Recent Data" else "Impact Metrics: Most Recent Data Combined",  
-      xaxis_title="Category",  
+      title_text=(f"Impact Metrics: Restaurants & Hotels" if subset == "restaurants+hotels"
+                  else f"Impact Metrics: {subset.capitalize()}" if subset != "Most Recent Data"
+                  else "Impact Metrics: Most Recent Data Combined"),
+      xaxis_title="Category",
       yaxis_title="GHG Emission (M kg CO₂e)",  
       yaxis2_title="Cost (M $)",  
       legend=dict(x=0.5, y=0.95, orientation='h'),  
@@ -151,7 +158,7 @@ app.layout = html.Div([
             options=[
                 {"label": "Most Recent Data", "value": "Most Recent Data"},
                 {"label": "Retail", "value": "retail"},
-                {"label": "restaurants+hotels", "value": "restaurants+hotels"},
+                {"label": "Restaurants & Hotels", "value": "restaurants+hotels"},
                 {"label": "Residential", "value": "residential"}
             ],
             value="Most Recent Data",
